@@ -1,0 +1,51 @@
+
+train.y <- df[,2]
+
+##In case of the computer is not strong enough, the memory.limit function increases the capacity
+##and avoid crashing Rstudio.
+memory.limit(size = 56000)
+
+##Here is the setup for the model using deep learning. There are different type of 
+##activations. You can choose something else. However, since I don't really understand how 
+##it works, I just use 'tanh'
+model <- keras_model_sequential() %>%
+  layer_dense(units = 64, activation = 'tanh', input_shape = c(9077)) %>%
+  layer_dense(units = 64, activation = 'tanh') %>%
+  layer_dense(units = 64, activation = 'tanh') %>%
+  layer_dense(units = 1, activation = 'sigmoid')
+model %>% compile(
+  optimizer = 'rmsprop',
+  loss = 'mse',
+  metrics = c('accuracy')
+)
+
+##Using same idea with the Lasso and Ridge regressions, the data are partial into training and test
+##sets. However, in here, I performed with 70% data in training set and 30% in testing. 
+train.index <- sample(nrow(a),nrow(a)*0.7)
+train.data <- a[train.index,]
+test.data <- a[-train.index,]
+train.es <- train.y[train.index]
+test.es <- train.y[-train.index]
+
+##Validation in training
+val.indices <- 1:1000
+x_val <- train.data[val.indices,]
+partial_x_val <- train.data[-val.indices,]
+y_val <- train.es[val.indices]
+partial_y_val <- train.es[-val.indices]
+
+##Perform the deep learning for classification
+history <- model %>% fit(partial_x_val, partial_y_val, epochs = 20, 
+                         batch_size = 128,
+                         validation_data = list(x_val, y_val))
+plot(history) #this one does not work
+
+##Predict
+pred <- model %>% predict(test.data)
+##Results
+confusionMatrix(as.factor(ifelse(pred >= 0.5, '1', '0')), as.factor(test.es),
+                positive = '1')
+
+##Results suggest that the model predict correctly 75% (mostly equal with Lasso and Ridge). However,
+##the model performed equally on essential and non-essential (75%). Therefore, each model has pros and
+##cons. 
