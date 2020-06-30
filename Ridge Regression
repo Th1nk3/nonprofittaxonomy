@@ -1,0 +1,17 @@
+set.seed(47)
+train.index <- sample(nrow(merge.data), nrow(merge.data)*.6)
+train.data <- merge.data[train.index, ]
+valid.data <- merge.data[-train.index, ]
+x <- model.matrix(Essential ~., train.data)[,-1]
+y <- train.data[,1]
+
+##The idea is the same here, but ridge regression is marked by 'alpha = 0' instead of 'alpha = 1'
+##in Lasso regression.
+cv.ridge <- cv.glmnet(x, y, alpha = 0, family = 'binomial')
+model <- glmnet(x, y, alpha = 0, family = 'binomial', lambda = cv.ridge$lambda.min)
+x1 <- model.matrix(Essential ~., valid.data)[,-1]
+pred <- predict(model, x1, type = 'response')
+confusionMatrix(as.factor(ifelse(pred >= .5, 1, 0)), as.factor(valid.data$Essential),
+                positive = '1')
+##Results are relatively the same with Lasso Regression. However, I still think that Lasso regression
+##performs a bit better than Ridge as theories suggest.
