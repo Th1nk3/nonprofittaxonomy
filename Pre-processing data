@@ -1,0 +1,54 @@
+##These are packages performed in the analysis. If any of them have not been installed,
+##then please install them first with 'install.packages('NAME OF THE PACKAGE')
+library(stringr)
+library(text2vec)
+library(openxlsx)
+library(tm)
+library(SnowballC)
+library(corpus)
+library(glmnet)
+
+##Depend on where files are located the working directory can be changed. In my computer,
+##here is the file I keep the file
+setwd('C:/Users/HP/Desktop/Study')
+train <- read.xlsx('train.xlsx')
+
+##Here is the function to simplify certain attribute of a mission statement including lowering
+##all letter, removing number as well as punctuations, and striping white space. However, a 
+##drawback of this function is that it does not include stemming words.
+prep_fun = function(x){
+  # lowercase
+  x = str_to_lower(x)
+  # remove non alphabetical symbol
+  x = str_replace_all(x, "^[:alnum:]]"," ")
+  # collapse space
+  str_replace_all(x, "\\s+", " ")
+}
+train$ms.clean <- prep_fun(df$Mission.Statement)
+train <- train[,-2]
+
+##This is another way to pre-processing the data using the 'corpus' package. I personally think
+##this is a better way to do it since it possesses all characteristic of the function above and
+##has the stem function as well. For the project, I use both of them with the above function first
+## and the corpus packages second.
+plain <- data.frame(NULL)
+for (i in 1:length(df$ms.clean)){
+  corpus <- Corpus(VectorSource(df$ms.clean[i]))
+  corpus <- tm_map(corpus, content_transformer(tolower))
+  corpus <- tm_map(corpus, removeWords, stopwords('english'))
+  corpus <- tm_map(corpus, removeNumbers)
+  corpus <- tm_map(corpus, stem_snowball)
+  corpus <- tm_map(corpus, removePunctuation)
+  corpus <- tm_map(corpus, stripWhitespace)
+  plain[i,1] <- corpus$content
+}
+
+##Now all the documents are simplified already. However, they are contained in terms of lists, so 
+##I need to change them into either matrix or table for the later analysis. 
+data <- text_tokens(plain$V1)
+data <- Corpus(VectorSource(data))
+data <- DocumentTermMatrix(data, control = list(minWordLength = 1))
+data <- as.matrix(data) #it should be in the matrix form right now
+
+##We can also change it into table form with data <- as.data.frame(data). However, the data are 
+##ready to use now. It contains 3847 rows and 9077 collumns. Each collumn stand for a vocalbulary 
