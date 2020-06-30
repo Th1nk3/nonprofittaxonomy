@@ -1,0 +1,16 @@
+##This is a suggestion. I belive it should be good, but due to my computer technical
+##limitations, it could not be done. Therefore, I still post it here as a suggestion.
+##This one takes lots of time and often crash my computer.
+model <- keras_model_sequential()
+model %>%
+  layer_embedding(input_dim = 10000, output_dim = 64) %>%
+  layer_simple_rnn(units = 32, dropout = 0.2, recurrent_dropout = 0.2) %>%
+  layer_dense(units = 1, activation = 'sigmoid')
+model %>% compile(
+  optimizer = 'rmsprop', loss = 'binary_crossentropy', metrics = c('accuracy'))
+history <- model %>% fit(partial_x_val, partial_y_val, epochs = 20,
+                         batch_size = 128, 
+                         validation_split = 0.2)
+plot(history)
+pred <- model %>% predict(test.data) 
+confusionMatrix(as.factor(ifelse(pred >= 0.5, '1', '0')), as.factor(test.es))
